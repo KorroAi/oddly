@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.cache/
+.config/
+.portfolio/
+.env
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
