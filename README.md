@@ -1,34 +1,46 @@
 <p align="center">
-  <img src="preview.png" alt="Oddly" width="100%">
+  <img src="preview.png" alt="Oddly" width="600">
 </p>
 
 # Oddly
 
-A tool that scans SEC filings to find odd-lot tender offers. Built as a Claude Code skill and Python package.
+Discover odd-lot tender offers before they close.
 
-## How It Works
+## What It Does
 
-Some companies and closed-end funds file tender offers with the SEC. They offer to buy back shares at a fixed price. Under SEC Rule 14d-10(f), these offers can include an odd-lot provision: anyone holding 99 shares or fewer gets priority. No proration. No partial fill. You buy shares at the market price. You tender them at the offer price. You keep the difference.
+Oddly scans SEC EDGAR filings to find tender offers with odd-lot provisions. These are corporate buyback offers where shareholders holding 99 shares or fewer get priority acceptance at a fixed price. No proration. No partial fills.
 
-Institutions managing billions of dollars cannot use this. A 99-share position is invisible at their scale. The regulation was written to protect small shareholders from institutional mechanics, and in doing so it created a structural asymmetry that only retail can exploit.
+You see something like this:
 
-Oddly automates the first part: scanning SEC EDGAR for these filings, parsing the details, and handing each candidate to an AI evaluation pipeline. The AI reads the full text of the filing and applies 11 verification gates. Each gate is binary and verifiable. The filing either contains the odd-lot language or it does not. If any gate fails, the candidate is rejected with a reason.
+```
+Symbol:         GBCS
+Company:        Selectis Health Inc.
+Filing:         SC TO-T (2026-07-15)
 
-Most filings are rejected. That is the point.
+Tender Price:   $5.75
+Market Price:   $5.30
+Premium:        +8.5%
+
+Max Shares:     99 (odd-lot)
+Cost:           $524.70
+Expected:       $44.55 profit
+
+Verdict:        REJECTED — premium below 10% minimum
+```
+
+Most filings are rejected. The tool applies 11 verification gates. A filing either has an odd-lot provision or it does not. The premium is either above your threshold or it is not. No guessing.
+
+## Why It Exists
+
+SEC Rule 14d-10(f) allows tender offers to give priority to holders of 99 shares or fewer. A fund managing billions cannot use a 99-share allocation. The regulation was written to protect small shareholders. It accidentally created a structural asymmetry that only retail investors can act on.
+
+Oddly automates the discovery. Claude Code provides the analysis. You make the decision.
 
 ## Claude Code Skill
 
-`/oddly` in Claude Code runs the full pipeline:
+Type `/oddly` to run the full pipeline. The skill checks your configuration, scans EDGAR, downloads each filing, applies all 11 gates, and presents a verdict with quotes from the filing text.
 
-1. Checks configuration (capital, position limits, minimum premium)
-2. Scans SEC EDGAR for recent tender offers and spin-off registrations
-3. Downloads and reads each filing
-4. Applies all 11 gates, stopping at the first failure
-5. Presents a verdict with evidence quoted from the filing
-
-If no configuration exists, the skill prompts for it on first run.
-
-## Installation
+## Install
 
 ```bash
 git clone https://github.com/KorroAi/oddly.git
@@ -37,57 +49,48 @@ pip install -e .
 oddly setup
 ```
 
-Python 3.10 or later. Dependencies: `requests`, `yfinance`. No API keys. SEC EDGAR is public.
+Python 3.10+. No API keys required.
 
 ## Commands
 
 ```
 oddly scan          Scan EDGAR for tender offers and spin-offs
-oddly setup         Configure capital and preferences
+oddly setup         Configure capital and minimum premium
 oddly portfolio     View positions and deadlines
 oddly analyze SYM   Open the SEC filing for a ticker
 oddly buy ...       Record a position
 oddly sell ...      Close a position
 ```
 
-## 11 Gates
+## 11 Verification Gates
 
-Each candidate is evaluated through all 11 gates. Gates are sequential. A failure at any gate stops evaluation.
+Gates are sequential. Any failure stops evaluation.
 
-| Gate | What It Checks |
-|------|---------------|
-| G0 | Is the filing still active? Deadline not passed? |
-| G1 | Is there an explicit odd-lot provision in the filing text? |
-| G2 | Is the consideration 100% cash? No financing conditions? |
-| G3 | Can you afford 99 shares with 50% of your capital? |
-| G4 | Is the premium at least 10% over the current market price? |
-| G5 | Is the deadline within 60 days? |
-| G6 | Is the stock listed on NYSE or NASDAQ? |
-| G7 | Can you write two specific failure scenarios for this deal? |
-| G8 | Can you quote the exact tender price from the filing? |
-| G9 | Any insider selling, litigation, or going concern warnings? |
-| G10 | Can you explain this opportunity in two plain sentences? |
-
-Gates are verifiable, not opinion-based. The filing has the language or it does not.
+| Gate | Check |
+|------|-------|
+| G0 | Filing still active? |
+| G1 | Odd-lot provision explicitly stated? |
+| G2 | 100% cash consideration? |
+| G3 | Affordable with 50% of capital? |
+| G4 | Premium above 10%? |
+| G5 | Deadline within 60 days? |
+| G6 | NYSE or NASDAQ listed? |
+| G7 | Two specific failure scenarios identified? |
+| G8 | Tender price confirmed from filing text? |
+| G9 | No red flags (insider selling, lawsuits)? |
+| G10 | Explainable in two sentences? |
 
 ## Research Paper
 
-[PAPER.pdf](PAPER.pdf) covers the regulatory basis (SEC Rule 14d-10), academic literature (Lakonishok & Vermaelen 1990, Larcker & Lys 1987, Dann 1981, Greenblatt 1997), the full 11-gate methodology, a 30-trade backtest of closed-end fund tender arbitrage, risk analysis, and capital requirements.
+[PAPER.pdf](PAPER.pdf) documents the regulatory basis, academic literature, methodology, and a 30-trade backtest of closed-end fund tender arbitrage (2024-2026). Also available as [Markdown](PAPER.md).
 
-Also available as [Markdown](PAPER.md).
+## Backtest
 
-## Backtest Data
-
-The backtest simulates 30 closed-end fund tender arbitrage trades from January 2024 through July 2026. Entry: 99 shares at market price approximately 5 days before tender announcement. Exit: tender at the offer price. 27 of 30 trades use historical prices from yfinance. 3 use NAV estimates for delisted tickers.
-
-Run it:
 ```bash
 python -m oddly.backtest
 ```
 
-Results saved to `oddly/.backtests/` as JSON.
-
-The backtest is provided for methodology review. It shows how the strategy behaved on known historical events. It is not forward-looking.
+30 trades, 27 with live yfinance data. Results saved to `oddly/.backtests/`.
 
 ## Files
 
@@ -98,18 +101,13 @@ oddly/
     config.py          Configuration, portfolio tracking
     cli.py             Command-line interface
     backtest.py        Backtest engine
-  .github/workflows/   CI (Python 3.10, 3.11, 3.12)
-  SKILL.md             Claude Code skill definition
+  SKILL.md             Claude Code skill
   PAPER.pdf            Research paper
-  PAPER.md             Research paper (source)
-  preview.png          Banner
 ```
 
 ## License
 
-GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
-
-Personal use, modification, and sharing are permitted. Commercial use as part of a proprietary product, offering the software as a service without releasing source code, or incorporating it into closed-source work is prohibited.
+GNU AGPL-3.0. See [LICENSE](LICENSE). Personal use permitted. Commercial proprietary use prohibited.
 
 ## Links
 
