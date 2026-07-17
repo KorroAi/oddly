@@ -36,9 +36,23 @@ SEC Rule 14d-10(f) allows tender offers to give priority to holders of 99 shares
 
 Oddly automates the discovery. Claude Code provides the analysis. You make the decision.
 
+## When a Signal Passes All Gates
+
+The skill presents the opportunity. Then you act:
+
+1. Open your brokerage (Fidelity, Schwab, Vanguard, IBKR, E\*TRADE — any broker that supports corporate actions). Buy the shares like any normal stock purchase. You can buy 1 to 99 shares. 99 maximizes profit. Fewer still qualifies.
+
+2. Record the position: `oddly buy SYM price shares tender_price --deadline YYYY-MM-DD`
+
+3. After buying, find the tender offer in your broker's Corporate Actions section. If it does not appear within a few days, call your broker and say "I hold shares of X. There is an active tender offer at $Y. I want to participate." Brokers are required to process this.
+
+4. Your shares are sold at the tender price when the offer closes. Record the exit: `oddly sell SYM exit_price --reason tendered`
+
+No special accounts. No special platforms. The shares are regular stocks. The tender is a corporate action processed by your existing broker.
+
 ## Claude Code Skill
 
-Type `/oddly` to run the full pipeline. The skill checks your configuration, scans EDGAR, downloads each filing, applies all 11 gates, and presents a verdict with quotes from the filing text.
+Type `/oddly` to run the full pipeline. The skill checks your configuration, scans EDGAR, downloads each filing, applies all 11 gates, and presents a verdict with quotes from the filing text. If a filing passes all gates, the skill walks you through exactly what to do — how many shares to buy, where, and how to tender them.
 
 ## Install
 

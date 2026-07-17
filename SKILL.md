@@ -117,7 +117,7 @@ For every tender found, download and read the actual SEC filing:
 python -c "
 import requests
 url = '<filing_url>'.replace('-index.htm', '.txt').replace('-index.html', '.txt')
-resp = requests.get(url, headers={'User-Agent': 'Oddly/1.0 (github.com/KorroAi/oddly)'})
+resp = requests.get(url, headers={'User-Agent': 'Oddly/1.0 (korrocorp@proton.me)'})
 print(resp.text[:15000])
 "
 ```
@@ -175,6 +175,22 @@ NO SIGNALS — 0/[N] tenders passed all 10 gates.
 This is NORMAL. Real odd-lot opportunities are 2-4/year.
 Rejected: [list each tender with which gate failed]
 ```
+
+### Step 5: If a Signal Passes — What the User Does
+
+When a filing passes ALL gates, present the opportunity AND these concrete steps:
+
+1. "Open your brokerage (Fidelity, Schwab, Vanguard, IBKR, E\*TRADE) and buy [N] shares of [SYMBOL] at market price. This is a regular stock purchase. Nothing special."
+2. "Record it: `oddly buy [SYMBOL] [price] [shares] [tender_price] --deadline [date]`"
+3. "After buying, find the tender offer in your broker's Corporate Actions section. If it does not appear within 2-3 days, call your broker and say: 'I hold shares of [SYMBOL]. There is an active tender offer at $[PRICE]. I want to participate.'"
+4. "Your shares will be sold at the tender price when the offer closes. Record it: `oddly sell [SYMBOL] [exit_price] --reason tendered`"
+
+Also explain:
+- 99 shares is the maximum, but any amount from 1 to 99 qualifies
+- The odd-lot provision says "fewer than 100 shares" — all odd-lot holders get priority
+- Buying fewer shares reduces both cost and profit proportionally
+- No special broker or platform is needed — any standard brokerage works
+- The broker is legally required to process tender requests from shareholders
 
 ## Portfolio — `/oddly portfolio`
 
