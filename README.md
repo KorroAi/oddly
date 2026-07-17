@@ -1,38 +1,32 @@
+<p align="center">
+  <img src="preview.png" alt="Oddly" width="100%">
+</p>
+
 # Oddly
 
-A Claude Code skill and Python package for scanning SEC EDGAR filings to find odd-lot tender offers. The skill provides an 11-gate AI evaluation pipeline that reads each filing and determines whether the opportunity is actionable.
+A tool that scans SEC filings to find odd-lot tender offers. Built as a Claude Code skill and Python package.
 
-## What It Does
+## How It Works
 
-When a company or closed-end fund files a tender offer with the SEC (forms SC TO-I, SC TO-T, SC 13E3), the filing may include an *odd-lot provision*: shareholders holding 99 or fewer shares receive priority acceptance without proration. These provisions exist under SEC Rule 14d-10(f) and are standard in many closed-end fund tender programs.
+Some companies and closed-end funds file tender offers with the SEC. They offer to buy back shares at a fixed price. Under SEC Rule 14d-10(f), these offers can include an odd-lot provision: anyone holding 99 shares or fewer gets priority. No proration. No partial fill. You buy shares at the market price. You tender them at the offer price. You keep the difference.
 
-Oddly scans EDGAR's current filings feed, extracts the relevant data, and hands each candidate to an AI evaluation pipeline. The AI reads the full text of the SEC filing and applies 11 verification gates before any opportunity is presented.
+Institutions managing billions of dollars cannot use this. A 99-share position is invisible at their scale. The regulation was written to protect small shareholders from institutional mechanics, and in doing so it created a structural asymmetry that only retail can exploit.
 
-The scanner also monitors spin-off registrations (Form 10-12B) and rights offering filings (Forms S-3, FWP). Each strategy type has its own lookback window and gate adaptations.
+Oddly automates the first part: scanning SEC EDGAR for these filings, parsing the details, and handing each candidate to an AI evaluation pipeline. The AI reads the full text of the filing and applies 11 verification gates. Each gate is binary and verifiable. The filing either contains the odd-lot language or it does not. If any gate fails, the candidate is rejected with a reason.
+
+Most filings are rejected. That is the point.
 
 ## Claude Code Skill
 
-The primary interface is the `/oddly` slash command in Claude Code. When invoked, the skill:
+`/oddly` in Claude Code runs the full pipeline:
 
-1. Checks the user's configuration (capital, position limits, minimum premium)
-2. Runs `oddly scan` to fetch current filings from SEC EDGAR
-3. Downloads and reads the full text of each filing
-4. Applies all 11 gates in sequence, stopping at the first failure
-5. Presents a verdict with quoted evidence from the filing text
+1. Checks configuration (capital, position limits, minimum premium)
+2. Scans SEC EDGAR for recent tender offers and spin-off registrations
+3. Downloads and reads each filing
+4. Applies all 11 gates, stopping at the first failure
+5. Presents a verdict with evidence quoted from the filing
 
-If no config exists on first run, the skill prompts for capital and preferences.
-
-### Skill Installation
-
-The skill file is at `~/.claude/skills/oddly/SKILL.md` in this repository. To install:
-
-```bash
-cp SKILL.md ~/.claude/skills/oddly/SKILL.md
-```
-
-Or copy it manually into your Claude Code skills directory. The skill auto-registers when the repository is present in your working directory.
-
-The skill is also available by installing the package and invoking `/oddly` in any Claude Code session.
+If no configuration exists, the skill prompts for it on first run.
 
 ## Installation
 
@@ -40,104 +34,83 @@ The skill is also available by installing the package and invoking `/oddly` in a
 git clone https://github.com/KorroAi/oddly.git
 cd oddly
 pip install -e .
+oddly setup
 ```
 
-Requires Python 3.10 or later. Dependencies: `requests`, `yfinance`. No API keys needed — SEC EDGAR is free and public.
+Python 3.10 or later. Dependencies: `requests`, `yfinance`. No API keys. SEC EDGAR is public.
 
 ## Commands
 
 ```
-oddly scan         Scan EDGAR for active tender offers and spin-offs
-oddly setup        Configure capital and risk parameters
-oddly portfolio    View positions, deadlines, P&L
-oddly analyze SYM  Open the SEC filing for a specific ticker
-oddly buy ...      Record a position (symbol, price, shares, tender price, deadline)
-oddly sell ...     Close a position with exit price and reason
+oddly scan          Scan EDGAR for tender offers and spin-offs
+oddly setup         Configure capital and preferences
+oddly portfolio     View positions and deadlines
+oddly analyze SYM   Open the SEC filing for a ticker
+oddly buy ...       Record a position
+oddly sell ...      Close a position
 ```
 
-`oddly setup` accepts optional flags for scripting:
+## 11 Gates
 
-```bash
-oddly setup --capital 1000 --max-positions 2 --min-premium 5
-```
+Each candidate is evaluated through all 11 gates. Gates are sequential. A failure at any gate stops evaluation.
 
-## 11-Gate Evaluation
+| Gate | What It Checks |
+|------|---------------|
+| G0 | Is the filing still active? Deadline not passed? |
+| G1 | Is there an explicit odd-lot provision in the filing text? |
+| G2 | Is the consideration 100% cash? No financing conditions? |
+| G3 | Can you afford 99 shares with 50% of your capital? |
+| G4 | Is the premium at least 10% over the current market price? |
+| G5 | Is the deadline within 60 days? |
+| G6 | Is the stock listed on NYSE or NASDAQ? |
+| G7 | Can you write two specific failure scenarios for this deal? |
+| G8 | Can you quote the exact tender price from the filing? |
+| G9 | Any insider selling, litigation, or going concern warnings? |
+| G10 | Can you explain this opportunity in two plain sentences? |
 
-Each candidate filing is evaluated through 11 sequential gates. If any gate fails, evaluation stops and the candidate is rejected with a specific reason.
+Gates are verifiable, not opinion-based. The filing has the language or it does not.
 
-| Gate | Criterion | Method |
-|------|-----------|--------|
-| G0 | Still Active | Filing date within lookback window, deadline not passed |
-| G1 | Odd-Lot Provision | Exact sentence must be quoted from the filing text |
-| G2 | All-Cash Consideration | No stock-for-stock, no financing conditions |
-| G3 | Affordable | 99 shares costs at most 50% of account capital |
-| G4 | Premium >= 10% | Verified tender price vs current market price |
-| G5 | Deadline <= 60 Days | Capital lock duration |
-| G6 | Exchange-Listed | NYSE or NASDAQ, no OTC |
-| G7 | Deal Risk | Two specific, concrete failure scenarios required |
-| G8 | Price Verified | Tender price confirmed by quoting the filing |
-| G9 | No Red Flags | Insider selling, litigation, going concern |
-| G10 | Grandmother Test | Fully explainable in two plain sentences |
+## Research Paper
 
-Gates are binary and verifiable. The filing either contains the odd-lot language or it does not. The premium is either above 10% or it is not. No scoring, no gray zones, no "close enough."
+[PAPER.pdf](PAPER.pdf) covers the regulatory basis (SEC Rule 14d-10), academic literature (Lakonishok & Vermaelen 1990, Larcker & Lys 1987, Dann 1981, Greenblatt 1997), the full 11-gate methodology, a 30-trade backtest of closed-end fund tender arbitrage, risk analysis, and capital requirements.
 
-## Architecture
+Also available as [Markdown](PAPER.md).
 
-Three layers, operating in sequence:
+## Backtest Data
 
-**Scanner (rate-limited, 8 req/sec):**
-Queries the SEC EDGAR current filings ATOM feed for SC TO-I, SC TO-T, SC 13E3, 10-12B, S-3, and FWP form types. Maps CIK numbers to ticker symbols via the SEC company tickers JSON endpoint, cached for 24 hours.
+The backtest simulates 30 closed-end fund tender arbitrage trades from January 2024 through July 2026. Entry: 99 shares at market price approximately 5 days before tender announcement. Exit: tender at the offer price. 27 of 30 trades use historical prices from yfinance. 3 use NAV estimates for delisted tickers.
 
-**Parser:**
-Downloads each filing as plain text, extracts the tender price, odd-lot provision language, expiration deadline, and deal conditions using regex patterns. Fetches the current market price via yfinance. Applies Gate 0 (still-active check based on filing date and parsed deadline).
-
-**AI Evaluation (Claude):**
-Reads the full filing text. Applies gates 1 through 10. Quotes the exact filing language for each gate that requires it. Produces a binary pass/reject verdict with supporting evidence.
-
-The output is either a detailed opportunity breakdown or "no signals today" with a list of what was rejected and why.
-
-## Backtest
-
-The repository includes `oddly/backtest.py`, which simulates 30 closed-end fund tender arbitrage trades from January 2024 through July 2026. Each trade assumes purchase of 99 shares at market price approximately 5 days before a known tender announcement, with exit at the tender offer price. 27 of the 30 trades use historical prices fetched from yfinance; 3 use NAV-based estimates for tickers that have since been delisted.
-
-Results are saved as JSON in `oddly/.backtests/` and can be regenerated:
-
+Run it:
 ```bash
 python -m oddly.backtest
 ```
 
-The backtest is provided for methodology review. It illustrates how the strategy behaves on known historical tender events. It is not a forward-looking prediction and each tender situation carries its own deal-specific risks.
+Results saved to `oddly/.backtests/` as JSON.
 
-## Paper
-
-A research paper covering the regulatory basis, academic literature, methodology, backtest results, and risk analysis is included as `PAPER.pdf` and `PAPER.md`.
+The backtest is provided for methodology review. It shows how the strategy behaved on known historical events. It is not forward-looking.
 
 ## Files
 
 ```
 oddly/
   oddly/
-    __init__.py
-    sec_filings.py    EDGAR client, filing parser, scanner
-    config.py          User configuration, portfolio tracking, trade history
+    sec_filings.py    EDGAR client, filing parser
+    config.py          Configuration, portfolio tracking
     cli.py             Command-line interface
-    backtest.py        CEF tender backtest engine
+    backtest.py        Backtest engine
   .github/workflows/   CI (Python 3.10, 3.11, 3.12)
   SKILL.md             Claude Code skill definition
-  PAPER.md             Research paper (Markdown)
-  PAPER.pdf            Research paper (PDF)
+  PAPER.pdf            Research paper
+  PAPER.md             Research paper (source)
+  preview.png          Banner
 ```
-
-## Limitations
-
-Tender offers with odd-lot provisions that meet all 11 gates are infrequent. The scanner finds filings but most are rejected: third-party acquisition tenders (SC TO-T) where the filing entity is the bidder, not the target; closed-end funds that are not exchange-listed; premiums below the 10% threshold; and stocks priced too high for small accounts. This is expected behavior. The gates exist specifically to reject these cases.
-
-SEC EDGAR filings may appear hours to days after the corporate announcement. A filing that triggers an alert on financial news may not yet be available in the EDGAR feed.
-
-Broker support for tender offer participation varies. Confirm with your broker before entering a position.
-
-This is not financial advice. The authors are not registered investment advisors.
 
 ## License
 
-GNU Affero General Public License v3.0. Personal use, modification, and sharing are permitted. Commercial use as part of a proprietary product, offering the software as a service without releasing source modifications, or incorporating it into a closed-source work are prohibited under the terms of the license.
+GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
+
+Personal use, modification, and sharing are permitted. Commercial use as part of a proprietary product, offering the software as a service without releasing source code, or incorporating it into closed-source work is prohibited.
+
+## Links
+
+[Discord](https://discord.gg/RSBHHjxnYt) · [X @korrocorp](https://x.com/korrocorp) · [GitHub](https://github.com/KorroAi) · [contact.korro@gmail.com](mailto:contact.korro@gmail.com)
