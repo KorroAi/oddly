@@ -5,6 +5,7 @@ dist/
 .cache/
 .config/
 .portfolio/
+-backtests/
 .env
 .vscode/
 .idea/
@@ -12,3 +13,4 @@ dist/
 *.swo
 .DS_Store
 Thumbs.db
+*.egg-info/
