@@ -16,7 +16,7 @@ CACHE_DIR.mkdir(exist_ok=True)
 TICKERS_CACHE = CACHE_DIR / "company_tickers.json"
 
 SEC_HEADERS = {
-    "User-Agent": "Oddly/1.0 (korrocorp@proton.me) AI-powered odd-lot tender scanner",
+    "User-Agent": "Oddly/1.0 (github.com/KorroAi/oddly)",
     "Accept": "application/json, application/xml, */*",
 }
 

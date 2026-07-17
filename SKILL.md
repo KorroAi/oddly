@@ -117,7 +117,7 @@ For every tender found, download and read the actual SEC filing:
 python -c "
 import requests
 url = '<filing_url>'.replace('-index.htm', '.txt').replace('-index.html', '.txt')
-resp = requests.get(url, headers={'User-Agent': 'Oddly/1.0 (korrocorp@proton.me)'})
+resp = requests.get(url, headers={'User-Agent': 'Oddly/1.0 (github.com/KorroAi/oddly)'})
 print(resp.text[:15000])
 "
 ```

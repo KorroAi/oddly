@@ -29,8 +29,8 @@ dev = ["pytest", "pytest-cov"]
 oddly = "oddly.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/korrocorp/oddly"
-Repository = "https://github.com/korrocorp/oddly.git"
+Homepage = "https://github.com/KorroAi/oddly"
+Repository = "https://github.com/KorroAi/oddly.git"
 
 [build-system]
 requires = ["setuptools>=68"]
